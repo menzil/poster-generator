@@ -1,0 +1,49 @@
+{
+  "width": 600,
+  "height": 400,
+  "background_color": "#f0f0f0",
+  "elements": [
+    {
+      "type": "text",
+      "text": "ئۇيغۇر تىلى",
+      "x": 300,
+      "y": 100,
+      "font_size": 48,
+      "color": "#2c3e50",
+      "align": "center",
+      "direction": "rtl",
+      "font_family": "UKIJBasma"
+    },
+    {
+      "type": "text",
+      "text": "سالام دۇنيا",
+      "x": 300,
+      "y": 180,
+      "font_size": 36,
+      "color": "#e74c3c",
+      "align": "center", 
+      "direction": "rtl",
+      "font_family": "UKIJBasma"
+    },
+    {
+      "type": "text",
+      "text": "مەرھابا",
+      "x": 300,
+      "y": 250,
+      "font_size": 32,
+      "color": "#27ae60",
+      "align": "center",
+      "direction": "rtl"
+    },
+    {
+      "type": "text",
+      "text": "Test with UKIJBasma font",
+      "x": 300,
+      "y": 320,
+      "font_size": 18,
+      "color": "#7f8c8d",
+      "align": "center",
+      "direction": "ltr"
+    }
+  ]
+}

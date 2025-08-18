@@ -1,0 +1,61 @@
+{
+  "width": 750,
+  "height": 600,
+  "background_color": "#ffffff",
+  "elements": [
+    {
+      "type": "background",
+      "color": "#f5f5f5",
+      "radius": 20
+    },
+    {
+      "type": "image",
+      "src": "sample_image.jpg",
+      "x": 50,
+      "y": 50,
+      "width": 650,
+      "height": 300,
+      "radius": 10,
+      "object_fit": "cover",
+      "z_index": 1
+    },
+    {
+      "type": "text",
+      "text": "Sample Poster Title",
+      "x": 375,
+      "y": 400,
+      "font_size": 40,
+      "color": "#333333",
+      "align": "center",
+      "bold": true,
+      "z_index": 2
+    },
+    {
+      "type": "text",
+      "text": "This is a sample description text for the poster. It demonstrates multi-line text wrapping capabilities of the poster generator.",
+      "x": 375,
+      "y": 450,
+      "font_size": 24,
+      "color": "#666666",
+      "align": "center",
+      "max_width": 600,
+      "line_height": 1.5,
+      "max_lines": 3,
+      "z_index": 2
+    },
+    {
+      "type": "text",
+      "text": "Price: 99.99",
+      "x": 375,
+      "y": 550,
+      "font_size": 32,
+      "color": "#ffffff",
+      "align": "center",
+      "prefix": "¥",
+      "background_color": "#ff6600",
+      "padding": 10,
+      "border_radius": 15,
+      "z_index": 3
+    }
+  ]
+} 

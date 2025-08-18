@@ -1,0 +1,40 @@
+{
+  "width": 500,
+  "height": 300,
+  "background_color": "#f8f9fa",
+  "elements": [
+    {
+      "type": "text",
+      "text": "سلام",
+      "x": 250,
+      "y": 80,
+      "font_size": 64,
+      "color": "#2c3e50",
+      "align": "center",
+      "direction": "rtl",
+      "font_family": "UKIJBasma"
+    },
+    {
+      "type": "text", 
+      "text": "ئۇيغۇر",
+      "x": 250,
+      "y": 160,
+      "font_size": 48,
+      "color": "#e74c3c",
+      "align": "center",
+      "direction": "rtl",
+      "font_family": "UKIJBasma"
+    },
+    {
+      "type": "text",
+      "text": "مەرھابا",
+      "x": 250,
+      "y": 220,
+      "font_size": 40,
+      "color": "#27ae60", 
+      "align": "center",
+      "direction": "rtl",
+      "font_family": "UKIJBasma"
+    }
+  ]
+}

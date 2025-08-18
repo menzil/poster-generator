@@ -1,0 +1,99 @@
+{
+  "width": 800,
+  "height": 600,
+  "background_color": "#f8f9fa",
+  "elements": [
+    {
+      "type": "background",
+      "color": "#ffffff",
+      "radius": 20
+    },
+    {
+      "type": "text",
+      "text": "ئۇيغۇر تىلى",
+      "x": 400,
+      "y": 120,
+      "font_size": 48,
+      "color": "#2c3e50",
+      "align": "center",
+      "direction": "rtl",
+      "font_family": "ALKATIP Basma Tom",
+      "bold": true,
+      "z_index": 1
+    },
+    {
+      "type": "text",
+      "text": "سالام دۇنيا - مەرھابا",
+      "x": 400,
+      "y": 180,
+      "font_size": 32,
+      "color": "#e74c3c",
+      "align": "center",
+      "direction": "rtl",
+      "font_family": "Amiri",
+      "z_index": 1
+    },
+    {
+      "type": "text",
+      "text": "连字测试 - لىگاتۇر سىناقى",
+      "x": 400,
+      "y": 240,
+      "font_size": 24,
+      "color": "#27ae60",
+      "align": "center",
+      "direction": "rtl",
+      "font_family": "ALKATIPBasmaTom",
+      "z_index": 1
+    },
+    {
+      "type": "text",
+      "text": "Arabic Typesetting font: ئەرەب تىپوگرافىيەسى",
+      "x": 400,
+      "y": 300,
+      "font_size": 20,
+      "color": "#3498db",
+      "align": "center",
+      "direction": "rtl",
+      "font_family": "Arabic Typesetting",
+      "z_index": 1
+    },
+    {
+      "type": "text",
+      "text": "Geeza Pro font: گېزا پرو خەت نۇسخىسى",
+      "x": 400,
+      "y": 360,
+      "font_size": 22,
+      "color": "#9b59b6",
+      "align": "center",
+      "direction": "rtl",
+      "font_family": "Geeza Pro",
+      "z_index": 1
+    },
+    {
+      "type": "text",
+      "text": "System default Arabic: سىستېما كۆڭۈلدىكى ئەرەب",
+      "x": 400,
+      "y": 420,
+      "font_size": 18,
+      "color": "#f39c12",
+      "align": "center",
+      "direction": "rtl",
+      "background_color": "#ecf0f1",
+      "padding": 8,
+      "border_radius": 8,
+      "z_index": 2
+    },
+    {
+      "type": "text",
+      "text": "English comparison with Inter font",
+      "x": 400,
+      "y": 480,
+      "font_size": 16,
+      "color": "#7f8c8d",
+      "align": "center",
+      "direction": "ltr",
+      "font_family": "Inter",
+      "z_index": 1
+    }
+  ]
+}

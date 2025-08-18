@@ -1,0 +1,27 @@
+{
+  "width": 400,
+  "height": 300,
+  "background_color": "#ffffff",
+  "elements": [
+    {
+      "type": "text",
+      "text": "سالام",
+      "x": 200,
+      "y": 100,
+      "font_size": 48,
+      "color": "#000000",
+      "align": "center",
+      "direction": "rtl"
+    },
+    {
+      "type": "text",
+      "text": "Hello",
+      "x": 200,
+      "y": 200,
+      "font_size": 48,
+      "color": "#666666",
+      "align": "center",
+      "direction": "ltr"
+    }
+  ]
+}

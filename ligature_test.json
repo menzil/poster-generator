@@ -1,0 +1,54 @@
+{
+  "width": 600,
+  "height": 400,
+  "background_color": "#ffffff",
+  "elements": [
+    {
+      "type": "text",
+      "text": "سالام",
+      "x": 300,
+      "y": 100,
+      "font_size": 64,
+      "color": "#2c3e50",
+      "align": "center",
+      "direction": "rtl",
+      "font_family": "ALKATIPBasmaTom",
+      "bold": false
+    },
+    {
+      "type": "text", 
+      "text": "دۇنيا",
+      "x": 300,
+      "y": 180,
+      "font_size": 64,
+      "color": "#e74c3c",
+      "align": "center",
+      "direction": "rtl",
+      "font_family": "ALKATIP Basma Tom",
+      "bold": false
+    },
+    {
+      "type": "text",
+      "text": "لىگاتۇر تېستى",
+      "x": 300,
+      "y": 260,
+      "font_size": 48,
+      "color": "#27ae60",
+      "align": "center",
+      "direction": "rtl",
+      "font_family": "Noto Naskh Arabic",
+      "bold": false
+    },
+    {
+      "type": "text",
+      "text": "连字测试完成 ✓",
+      "x": 300,
+      "y": 320,
+      "font_size": 24,
+      "color": "#7f8c8d",
+      "align": "center",
+      "direction": "ltr",
+      "font_family": "Inter"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "width": 800,
+  "height": 600,
+  "background_color": "#f8f9fa",
+  "elements": [
+    {
+      "type": "background",
+      "color": "#ffffff",
+      "radius": 20
+    },
+    {
+      "type": "text",
+      "text": "ئۇيغۇر تىلى",
+      "x": 400,
+      "y": 150,
+      "font_size": 48,
+      "color": "#2c3e50",
+      "align": "center",
+      "direction": "rtl",
+      "bold": true,
+      "z_index": 1
+    },
+    {
+      "type": "text",
+      "text": "سالام دۇنيا",
+      "x": 400,
+      "y": 220,
+      "font_size": 32,
+      "color": "#e74c3c",
+      "align": "center",
+      "direction": "rtl",
+      "z_index": 1
+    },
+    {
+      "type": "text",
+      "text": "Hello World (English)",
+      "x": 400,
+      "y": 280,
+      "font_size": 24,
+      "color": "#3498db",
+      "align": "center",
+      "direction": "ltr",
+      "z_index": 1
+    },
+    {
+      "type": "text",
+      "text": "مۇرەككەپ تېكىست ئۈچۈن سىناق",
+      "x": 400,
+      "y": 350,
+      "font_size": 20,
+      "color": "#27ae60",
+      "align": "center",
+      "direction": "rtl",
+      "max_width": 600,
+      "background_color": "#ecf0f1",
+      "padding": 10,
+      "border_radius": 10,
+      "z_index": 2
+    }
+  ]
+}
