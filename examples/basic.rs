@@ -1,7 +1,6 @@
 use anyhow::Result;
 use poster_generator::{
-    BackgroundElement, Element, ImageElement, ObjectFit, PosterGenerator, Radius, TextAlignType,
-    TextDirectionType, TextElement,
+    BackgroundElement, PosterGenerator, Radius, TextAlignType, TextElement,
 };
 
 fn main() -> Result<()> {
