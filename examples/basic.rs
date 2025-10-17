@@ -45,6 +45,23 @@ fn main() -> Result<()> {
     };
     generator.add_text(subtitle);
 
+    // Add Chinese text
+    let chinese = TextElement {
+        text: "世界你好".to_string(),
+        x: 400.0,
+        y: 360.0,
+        font_size: 36.0,
+        color: "#2c3e50".to_string(),
+        align: TextAlignType::Center,
+        font_family: Some("PingFang SC".to_string()),
+        background_color: Some("#e8f5e9".to_string()),
+        padding: 10.0,
+        border_radius: Some(Radius::Single(8.0)),
+        z_index: Some(2),
+        ..Default::default()
+    };
+    generator.add_text(chinese);
+
     // Add a price tag with background
     let price = TextElement {
         text: "99.99".to_string(),

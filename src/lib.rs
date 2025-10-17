@@ -57,7 +57,7 @@ use skia_safe::{
     Canvas, Color, Data, EncodedImageFormat, Font,
     FontMgr, FontStyle, Image, Paint, Path as SkPath, Point, Rect,
     TextBlob,
-    textlayout::{FontCollection, ParagraphBuilder, ParagraphStyle, TextAlign, TextDirection, TextStyle, TypefaceFontProvider}
+    textlayout::{FontCollection, ParagraphBuilder, ParagraphStyle, TextAlign, TextDirection, TextStyle}
 };
 use thiserror::Error;
 
@@ -187,8 +187,11 @@ pub struct TextElement {
     /// Text alignment.
     #[serde(default = "default_text_align")]
     pub align: TextAlignType,
-    /// Optional font family name (e.g., "Arial", "ALKATIP Basma Tom" for Uyghur).
+    /// Optional font family name from system fonts (e.g., "Arial", "PingFang SC").
     pub font_family: Option<String>,
+    /// Optional font file path (e.g., "fonts/custom.ttf", "UKIJBasma.ttf").
+    /// Takes priority over font_family if both are specified.
+    pub font_file: Option<String>,
     /// Maximum width for text wrapping. If None, text is rendered on a single line.
     pub max_width: Option<f32>,
     /// Line height multiplier (e.g., 1.5 = 150% of font size).
@@ -229,6 +232,7 @@ impl Default for TextElement {
             color: "#000000".to_string(),
             align: TextAlignType::Left,
             font_family: None,
+            font_file: None,
             max_width: None,
             line_height: 1.5,
             max_lines: None,
@@ -293,7 +297,7 @@ pub enum TextDirectionType {
 
 // Utility function to detect RTL/Arabic script text
 fn is_rtl_text(text: &str) -> bool {
-    // Check for Arabic/Persian/Uyghur Unicode ranges
+    // Check for Arabic/Persian/Uyghur/Hebrew Unicode ranges
     text.chars().any(|c| {
         let code = c as u32;
         // Arabic: U+0600-U+06FF
@@ -301,87 +305,86 @@ fn is_rtl_text(text: &str) -> bool {
         // Arabic Extended-A: U+08A0-U+08FF
         // Arabic Presentation Forms-A: U+FB50-U+FDFF
         // Arabic Presentation Forms-B: U+FE70-U+FEFF
+        // Hebrew: U+0590-U+05FF
         (code >= 0x0600 && code <= 0x06FF) ||
         (code >= 0x0750 && code <= 0x077F) ||
         (code >= 0x08A0 && code <= 0x08FF) ||
         (code >= 0xFB50 && code <= 0xFDFF) ||
-        (code >= 0xFE70 && code <= 0xFEFF)
+        (code >= 0xFE70 && code <= 0xFEFF) ||
+        (code >= 0x0590 && code <= 0x05FF)  // Hebrew
     })
 }
 
 // Function to load font from file
 fn load_font_from_file(font_path: &str, font_size: f32) -> Option<Font> {
-    if let Ok(font_data) = std::fs::read(font_path) {
-        let font_mgr = FontMgr::new();
-        if let Some(typeface) = font_mgr.new_from_data(&font_data, None) {
-            return Some(Font::new(typeface, font_size));
+    use std::path::Path as StdPath;
+
+    // Try multiple possible paths to handle different working directories
+    let paths_to_try = vec![
+        font_path.to_string(),           // Original path
+        format!("./{}", font_path),      // Current directory
+        format!("../{}", font_path),     // Parent directory
+    ];
+
+    for try_path in &paths_to_try {
+        if !StdPath::new(try_path).exists() {
+            continue;
+        }
+
+        if let Ok(font_bytes) = std::fs::read(try_path) {
+            // Use Skia API: Data::new_copy() -> FontMgr::new_from_data()
+            let font_data = Data::new_copy(&font_bytes);
+            let font_mgr = FontMgr::new();
+
+            if let Some(typeface) = font_mgr.new_from_data(&font_data, None) {
+                return Some(Font::from_typeface(typeface, font_size));
+            }
         }
     }
+
     None
 }
 
-// Function to get appropriate font for text with optional font family
-fn get_font_for_text_with_family(text: &str, font_size: f32, bold: bool, font_family: Option<&str>) -> Font {
+// Function to get appropriate font for text with optional font family or font file
+fn get_font_for_text_with_family(_text: &str, font_size: f32, bold: bool, font_family: Option<&str>, font_file: Option<&str>) -> Font {
     let font_mgr = FontMgr::default();
-    
-    let weight = if bold { 
-        skia_safe::font_style::Weight::BOLD 
-    } else { 
-        skia_safe::font_style::Weight::NORMAL 
+
+    let weight = if bold {
+        skia_safe::font_style::Weight::BOLD
+    } else {
+        skia_safe::font_style::Weight::NORMAL
     };
-    
+
     let font_style = FontStyle::new(weight, skia_safe::font_style::Width::NORMAL, skia_safe::font_style::Slant::Upright);
-    
-    // For RTL text, try loading UKIJBasma font from file first
-    if is_rtl_text(text) {
-        // Try to load UKIJBasma font from local file
-        if let Some(font) = load_font_from_file("UKIJBasma.ttf", font_size) {
-            return font;
-        }
-        if let Some(font) = load_font_from_file("./UKIJBasma.ttf", font_size) {
+
+    // 1. Priority: User-specified font file
+    if let Some(file_path) = font_file {
+        if let Some(font) = load_font_from_file(file_path, font_size) {
             return font;
         }
     }
-    
-    // If user specified a font family, try that next
+
+    // 2. Next: User-specified font family
     if let Some(family) = font_family {
         if let Some(typeface) = font_mgr.match_family_style(family, font_style) {
             return Font::new(typeface, font_size);
         }
     }
-    
-    // For RTL/Arabic scripts including Uyghur, prioritize UKIJBasma and other Arabic fonts
-    let font_families = if is_rtl_text(text) {
-        // Priority order: UKIJBasma first (专门的维吾尔语字体), then other Arabic fonts
-        vec![
-            "UKIJBasma",              // 专门的维吾尔语字体 - 最高优先级
-            "UKIJ Basma",             // 可能的替代名称
-            "Geeza Pro",              // macOS Arabic font - excellent RTL support
-            "Al Bayan",               // macOS Arabic font - good for Uyghur
-            "Arial Unicode MS",       // Comprehensive Unicode coverage
-            "Baghdad",                // macOS Arabic font
-            "Nadeem",                 // macOS Arabic font
-            "DejaVu Sans",            // Open source with Arabic support
-            "Times New Roman",        // Has some Arabic glyphs
-            "Arial",                  // Basic fallback
-            "Helvetica"               // System fallback
-        ]
-    } else {
-        vec![
-            "SF Pro Text",     // macOS system font
-            "Arial",           // Cross-platform
-            "Helvetica",       // macOS standard
-            "Times New Roman", // Classic fallback
-        ]
-    };
-    
-    // Try to find a suitable font
-    for family in font_families {
+
+    // 3. Finally: Simple universal fallback fonts
+    let default_fonts = vec![
+        "Arial Unicode MS",  // Best Unicode coverage
+        "Arial",
+        "Helvetica",
+        "Times New Roman",
+    ];
+
+    for family in default_fonts {
         if let Some(typeface) = font_mgr.match_family_style(family, font_style) {
             return Font::new(typeface, font_size);
         }
     }
-    
+
     // Fallback to default font
     let font_mgr = FontMgr::default();
     if let Some(typeface) = font_mgr.legacy_make_typeface(None, FontStyle::normal()) {
@@ -591,8 +594,8 @@ impl PosterElement for TextElement {
             }
         };
         
-        // Get appropriate font for the text with optional font family
-        let font = get_font_for_text_with_family(&full_text, self.font_size, self.bold, self.font_family.as_deref());
+        // Get appropriate font for the text with optional font family and font file
+        let font = get_font_for_text_with_family(&full_text, self.font_size, self.bold, self.font_family.as_deref(), self.font_file.as_deref());
         
         // Use TextLayout for proper RTL and complex text rendering
         self.render_with_text_layout(canvas, &full_text, &text_direction, &font, color)?;
@@ -1202,12 +1205,12 @@ fn draw_text_line_improved(
     direction: &TextDirectionType,
     align: &TextAlignType
 ) {
-    // For RTL text (Arabic/Uyghur), use Skia's textlayout for proper shaping and direction
+    // For RTL text (Arabic/Hebrew/Uyghur), use Skia's textlayout for proper shaping and direction
     if matches!(direction, TextDirectionType::Rtl) && is_rtl_text(text) {
         // Create paragraph style with RTL direction
         let mut paragraph_style = ParagraphStyle::new();
         paragraph_style.set_text_direction(TextDirection::RTL);
-        
+
         // Set text alignment
         let text_align = match align {
             TextAlignType::Left => TextAlign::Left,
@@ -1215,54 +1218,44 @@ fn draw_text_line_improved(
             TextAlignType::Center => TextAlign::Center,
         };
         paragraph_style.set_text_align(text_align);
-        
-        // Create font collection with custom UKIJBasma font
-        let font_mgr = FontMgr::new();
+
+        // Use system font manager for font collection
+        let font_mgr = FontMgr::default();
         let mut font_collection = FontCollection::new();
-        
-        // Load UKIJBasma font and add to font collection if available
-        if let Ok(font_data) = std::fs::read("./UKIJBasma.ttf") {
-            if let Some(ukij_typeface) = font_mgr.new_from_data(&font_data, None) {
-                // Create a custom font provider and add the UKIJBasma font
-                let mut font_provider = TypefaceFontProvider::new();
-                font_provider.register_typeface(ukij_typeface.clone(), Some("UKIJBasma"));
-                let font_mgr_from_provider: FontMgr = font_provider.into();
-                font_collection.set_asset_font_manager(Some(font_mgr_from_provider));
-            }
-        }
-        
         font_collection.set_default_font_manager(font_mgr, None);
+
         let mut paragraph_builder = ParagraphBuilder::new(&paragraph_style, font_collection);
-        
-        // Create text style with UKIJBasma font family
+
+        // Create text style using the font that was already selected by get_font_for_text_with_family
         let mut text_style = TextStyle::new();
         text_style.set_font_size(font.size());
         text_style.set_color(paint.color());
-        
-        // Set font families - prioritize UKIJBasma for RTL text
-        text_style.set_font_families(&["UKIJBasma", "Arial Unicode MS", "Geeza Pro"]);
-        
+
+        // Extract font family name from the font
+        let family_name = font.typeface().family_name();
+        text_style.set_font_families(&[family_name.as_str()]);
+
         // Add styled text
         paragraph_builder.push_style(&text_style);
         paragraph_builder.add_text(text);
-        
+
         // Build and layout paragraph
         let mut paragraph = paragraph_builder.build();
         paragraph.layout(1000.0); // Wide layout for proper text measurement
-        
+
         // Adjust Y position for baseline
         let draw_y = y - font.size();
-        
+
         // For center alignment, adjust X position
         let draw_x = if matches!(align, TextAlignType::Center) {
             x - paragraph.max_width() / 2.0
         } else {
             x
         };
-        
+
         // Draw the paragraph
         paragraph.paint(canvas, Point::new(draw_x, draw_y));
-        
+
     } else {
         // For LTR text, use standard TextBlob approach
         if let Some(blob) = TextBlob::new(text, font) {

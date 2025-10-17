@@ -36,6 +36,7 @@ fn main() -> Result<()> {
                 color: "#333333".to_string(),
                 align: TextAlignType::Center,
                 font_family: None,
+                font_file: None,
                 max_width: None,
                 line_height: 1.5,
                 max_lines: None,
@@ -57,6 +58,7 @@ fn main() -> Result<()> {
                 color: "#666666".to_string(),
                 align: TextAlignType::Center,
                 font_family: None,
+                font_file: None,
                 max_width: Some(600.0),
                 line_height: 1.5,
                 max_lines: Some(3),
@@ -78,6 +80,7 @@ fn main() -> Result<()> {
                 color: "#ffffff".to_string(),
                 align: TextAlignType::Center,
                 font_family: None,
+                font_file: None,
                 max_width: None,
                 line_height: 1.5,
                 max_lines: None,
@@ -91,7 +94,7 @@ fn main() -> Result<()> {
                 height: None,
                 direction: TextDirectionType::Ltr,
             }),
-            // 添加一个RTL方向的文本元素(维吾尔语示例)
+            // 添加一个RTL方向的文本元素(维吾尔语示例) - using custom font file
             Element::Text(TextElement {
                 text: "ياخشىمۇ مەن كەلدىم".to_string(), // 维吾尔语"你好，我来了"
                 x: 375.0,
@@ -99,7 +102,8 @@ fn main() -> Result<()> {
                 font_size: 28.0,
                 color: "#0066cc".to_string(),
                 align: TextAlignType::Right, // 对于RTL文本，通常使用右对齐
-                font_family: Some("ALKATIPBasmaTom".to_string()), // 专门的维吾尔语字体
+                font_family: None,
+                font_file: Some("UKIJBasma.ttf".to_string()), // 指定维吾尔语字体文件
                 max_width: Some(600.0),
                 line_height: 1.5,
                 max_lines: None,
