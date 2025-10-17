@@ -1,6 +1,5 @@
 use anyhow::Result;
 use base64::{engine::general_purpose, Engine};
-// use image::DynamicImage;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use skia_safe::{
