@@ -14,9 +14,14 @@ exclude = [
     "*.jpg",
     "*.png",
     "*.json",
+    "*.ttf",
+    ".DS_Store",
     "target/",
     ".git/",
     ".github/",
+    "Poster.vue",
+    "CLAUDE.md",
+    "UYGHUR_SUPPORT.md",
 ]
 
 [dependencies]
