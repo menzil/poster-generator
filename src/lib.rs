@@ -1,3 +1,54 @@
+//! A poster generation library based on Skia Safe.
+//!
+//! This library provides a flexible way to create poster images with text and image elements,
+//! supporting RTL (Right-to-Left) languages like Arabic, Hebrew, Persian, and Uy ghur.
+//!
+//! # Features
+//!
+//! - Create customizable poster canvas with configurable width and height
+//! - Background elements with colors, images, and rounded corners
+//! - Image elements with positioning, scaling (cover/contain/stretch), and rounded corners
+//! - Text elements with:
+//!   - Multi-line text with automatic word wrapping
+//!   - RTL/LTR text direction support
+//!   - Custom fonts and styling
+//!   - Text backgrounds with padding and border radius
+//!   - Z-index layering
+//! - Export as PNG file or base64 encoded string
+//!
+//! # Example
+//!
+//! ```
+//! use poster_generator::{PosterGenerator, TextElement, TextAlignType, TextDirectionType};
+//!
+//! let mut generator = PosterGenerator::new(800, 600, "#ffffff".to_string());
+//!
+//! let text = TextElement {
+//!     text: "Hello, World!".to_string(),
+//!     x: 400.0,
+//!     y: 300.0,
+//!     font_size: 48.0,
+//!     color: "#333333".to_string(),
+//!     align: TextAlignType::Center,
+//!     font_family: None,
+//!     max_width: None,
+//!     line_height: 1.5,
+//!     max_lines: None,
+//!     z_index: Some(1),
+//!     bold: true,
+//!     prefix: None,
+//!     background_color: None,
+//!     padding: 0.0,
+//!     border_radius: None,
+//!     width: None,
+//!     height: None,
+//!     direction: TextDirectionType::Ltr,
+//! };
+//!
+//! generator.add_text(text);
+//! generator.generate_file("output.png").expect("Failed to generate poster");
+//! ```
+
 use anyhow::Result;
 use base64::{engine::general_purpose, Engine};
 use serde::{Deserialize, Serialize};
@@ -10,124 +61,233 @@ use skia_safe::{
 };
 use thiserror::Error;
 
-// Custom error type
+/// Custom error type for poster generation.
 #[derive(Error, Debug)]
 pub enum PosterError {
+    /// Error occurred while loading or decoding an image.
     #[error("Failed to load image: {0}")]
     ImageLoadError(String),
-    
+
+    /// Error occurred during the rendering process.
     #[error("Failed to render element: {0}")]
     RenderError(String),
-    
+
+    /// Error occurred while encoding or saving output.
     #[error("Failed to generate output: {0}")]
     OutputError(String),
 }
 
-// Main config structure
+/// Main configuration structure for poster generation.
+///
+/// # Example
+///
+/// ```
+/// use poster_generator::{PosterConfig, Element, TextElement, TextAlignType, TextDirectionType};
+///
+/// let config = PosterConfig {
+///     width: 800,
+///     height: 600,
+///     background_color: "#ffffff".to_string(),
+///     elements: vec![
+///         Element::Text(TextElement {
+///             text: "Sample Text".to_string(),
+///             x: 400.0,
+///             y: 300.0,
+///             font_size: 32.0,
+///             color: "#000000".to_string(),
+///             align: TextAlignType::Center,
+///             ..Default::default()
+///         }),
+///     ],
+/// };
+/// ```
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PosterConfig {
+    /// Canvas width in pixels.
     pub width: u32,
+    /// Canvas height in pixels.
     pub height: u32,
+    /// Background color in hex format (e.g., "#ffffff" or "#ffffffff" with alpha).
     pub background_color: String,
+    /// List of elements to render on the poster.
     pub elements: Vec<Element>,
 }
 
-// Element types
+/// Poster element types.
+///
+/// Elements are rendered in order of their z-index (lowest to highest).
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type")]
 pub enum Element {
+    /// Background element (always rendered first).
     #[serde(rename = "background")]
     Background(BackgroundElement),
-    
+
+    /// Image element.
     #[serde(rename = "image")]
     Image(ImageElement),
-    
+
+    /// Text element with RTL support.
     #[serde(rename = "text")]
     Text(TextElement),
 }
 
-// Background element
+/// Background element configuration.
+///
+/// The background element fills the entire canvas and supports both solid colors and images.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct BackgroundElement {
+    /// Optional background image path or base64 data URL.
     pub image: Option<String>,
+    /// Background color in hex format.
     pub color: String,
+    /// Optional border radius for rounded corners.
     pub radius: Option<Radius>,
 }
 
-// Image element
+/// Image element configuration.
+///
+/// Supports various scaling modes and rounded corners.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ImageElement {
+    /// Image source: file path or base64 data URL.
     pub src: String,
+    /// X-coordinate of the image (top-left corner).
     pub x: f32,
+    /// Y-coordinate of the image (top-left corner).
     pub y: f32,
+    /// Width of the image container.
     pub width: f32,
+    /// Height of the image container.
     pub height: f32,
+    /// Optional border radius for rounded corners.
     pub radius: Option<Radius>,
+    /// Z-index for layering (higher values are rendered on top).
     pub z_index: Option<i32>,
+    /// Image scaling mode.
     #[serde(default = "default_object_fit")]
     pub object_fit: ObjectFit,
 }
 
-// Text element
+/// Text element configuration with RTL support.
+///
+/// Supports multi-line text, custom fonts, and automatic RTL detection for Arabic, Hebrew, and Uyghur scripts.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct TextElement {
+    /// Text content to render.
     pub text: String,
+    /// X-coordinate of the text anchor point.
     pub x: f32,
+    /// Y-coordinate of the text baseline.
     pub y: f32,
+    /// Font size in points.
     pub font_size: f32,
+    /// Text color in hex format.
     pub color: String,
+    /// Text alignment.
     #[serde(default = "default_text_align")]
     pub align: TextAlignType,
+    /// Optional font family name (e.g., "Arial", "ALKATIP Basma Tom" for Uyghur).
     pub font_family: Option<String>,
+    /// Maximum width for text wrapping. If None, text is rendered on a single line.
     pub max_width: Option<f32>,
+    /// Line height multiplier (e.g., 1.5 = 150% of font size).
     #[serde(default = "default_line_height")]
     pub line_height: f32,
+    /// Maximum number of lines. Text exceeding this will be truncated with ellipsis.
     pub max_lines: Option<u32>,
+    /// Z-index for layering.
     pub z_index: Option<i32>,
+    /// Whether to use bold font weight.
     #[serde(default = "default_bold")]
     pub bold: bool,
+    /// Optional prefix to prepend to the text (e.g., currency symbol).
     pub prefix: Option<String>,
+    /// Optional background color for the text box.
     pub background_color: Option<String>,
+    /// Padding around the text when background color is set.
     #[serde(default = "default_padding")]
     pub padding: f32,
+    /// Optional border radius for the text background.
     pub border_radius: Option<Radius>,
+    /// Optional fixed width for the text box.
     pub width: Option<f32>,
+    /// Optional fixed height for the text box.
     pub height: Option<f32>,
+    /// Text direction (LTR or RTL). Automatically detected if set to LTR.
     #[serde(default = "default_text_direction")]
     pub direction: TextDirectionType,
 }
 
-// Radius type can be a single value or an array for each corner
+impl Default for TextElement {
+    fn default() -> Self {
+        Self {
+            text: String::new(),
+            x: 0.0,
+            y: 0.0,
+            font_size: 16.0,
+            color: "#000000".to_string(),
+            align: TextAlignType::Left,
+            font_family: None,
+            max_width: None,
+            line_height: 1.5,
+            max_lines: None,
+            z_index: None,
+            bold: false,
+            prefix: None,
+            background_color: None,
+            padding: 0.0,
+            border_radius: None,
+            width: None,
+            height: None,
+            direction: TextDirectionType::Ltr,
+        }
+    }
+}
+
+/// Border radius configuration.
+///
+/// Can be either a single value for all corners or individual values for each corner.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
 pub enum Radius {
+    /// Single radius value applied to all corners.
     Single(f32),
-    Multiple([f32; 4]), // top-left, top-right, bottom-right, bottom-left
+    /// Individual radius values: [top-left, top-right, bottom-right, bottom-left].
+    Multiple([f32; 4]),
 }
 
-// Object fit enum
+/// Image scaling mode.
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ObjectFit {
+    /// Scale and crop the image to fill the container while maintaining aspect ratio.
     Cover,
+    /// Scale the image to fit within the container while maintaining aspect ratio.
     Contain,
+    /// Stretch the image to fill the container (may distort).
     Stretch,
 }
 
-// Text alignment enum
+/// Text alignment options.
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum TextAlignType {
+    /// Align text to the left.
     Left,
+    /// Center align text.
     Center,
+    /// Align text to the right.
     Right,
 }
 
-// Text direction enum
+/// Text direction for bi-directional text support.
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum TextDirectionType {
+    /// Left-to-right text direction (default). RTL scripts are automatically detected.
     Ltr,
+    /// Right-to-left text direction (for Arabic, Hebrew, Uyghur, etc.).
     Rtl,
 }
 
@@ -263,7 +423,31 @@ fn default_text_direction() -> TextDirectionType {
     TextDirectionType::Ltr
 }
 
-// Main poster generator struct
+/// Main poster generator.
+///
+/// This is the primary struct for creating posters. Elements are rendered in z-index order.
+///
+/// # Example
+///
+/// ```
+/// use poster_generator::{PosterGenerator, TextElement, TextAlignType, TextDirectionType};
+///
+/// let mut generator = PosterGenerator::new(800, 600, "#f0f0f0".to_string());
+///
+/// let text = TextElement {
+///     text: "مرحبا بالعالم".to_string(), // Arabic: Hello World
+///     x: 400.0,
+///     y: 300.0,
+///     font_size: 48.0,
+///     color: "#333333".to_string(),
+///     align: TextAlignType::Center,
+///     direction: TextDirectionType::Rtl,
+///     ..Default::default()
+/// };
+///
+/// generator.add_text(text);
+/// let png_data = generator.generate().expect("Failed to generate");
+/// ```
 pub struct PosterGenerator {
     width: u32,
     height: u32,
@@ -495,6 +679,21 @@ impl TextElement {
 
 // Implementation for PosterGenerator
 impl PosterGenerator {
+    /// Creates a new poster generator.
+    ///
+    /// # Arguments
+    ///
+    /// * `width` - Canvas width in pixels
+    /// * `height` - Canvas height in pixels
+    /// * `background_color` - Background color in hex format (e.g., "#ffffff")
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poster_generator::PosterGenerator;
+    ///
+    /// let generator = PosterGenerator::new(1920, 1080, "#000000".to_string());
+    /// ```
     pub fn new(width: u32, height: u32, background_color: String) -> Self {
         Self {
             width,
@@ -503,27 +702,107 @@ impl PosterGenerator {
             elements: Vec::new(),
         }
     }
-    
+
+    /// Adds a background element to the poster.
+    ///
+    /// Background elements are always rendered first (z-index: -1000).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poster_generator::{PosterGenerator, BackgroundElement, Radius};
+    ///
+    /// let mut generator = PosterGenerator::new(800, 600, "#ffffff".to_string());
+    /// let bg = BackgroundElement {
+    ///     color: "#f0f0f0".to_string(),
+    ///     image: None,
+    ///     radius: Some(Radius::Single(20.0)),
+    /// };
+    /// generator.add_background(bg);
+    /// ```
     pub fn add_background(&mut self, background: BackgroundElement) -> &mut Self {
         self.elements.push(Box::new(background));
         self
     }
-    
+
+    /// Adds an image element to the poster.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poster_generator::{PosterGenerator, ImageElement, ObjectFit, Radius};
+    ///
+    /// let mut generator = PosterGenerator::new(800, 600, "#ffffff".to_string());
+    /// let img = ImageElement {
+    ///     src: "photo.jpg".to_string(),
+    ///     x: 50.0,
+    ///     y: 50.0,
+    ///     width: 300.0,
+    ///     height: 200.0,
+    ///     radius: Some(Radius::Single(10.0)),
+    ///     z_index: Some(1),
+    ///     object_fit: ObjectFit::Cover,
+    /// };
+    /// generator.add_image(img);
+    /// ```
     pub fn add_image(&mut self, image: ImageElement) -> &mut Self {
         self.elements.push(Box::new(image));
         self
     }
-    
+
+    /// Adds a text element to the poster.
+    ///
+    /// Text elements support RTL languages and will be automatically detected.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poster_generator::{PosterGenerator, TextElement, TextAlignType, TextDirectionType};
+    ///
+    /// let mut generator = PosterGenerator::new(800, 600, "#ffffff".to_string());
+    /// let text = TextElement {
+    ///     text: "Hello, World!".to_string(),
+    ///     x: 400.0,
+    ///     y: 300.0,
+    ///     font_size: 48.0,
+    ///     color: "#000000".to_string(),
+    ///     align: TextAlignType::Center,
+    ///     ..Default::default()
+    /// };
+    /// generator.add_text(text);
+    /// ```
     pub fn add_text(&mut self, text: TextElement) -> &mut Self {
         self.elements.push(Box::new(text));
         self
     }
-    
+
+    /// Clears all elements from the poster.
     pub fn clear(&mut self) -> &mut Self {
         self.elements.clear();
         self
     }
-    
+
+    /// Sets all elements at once, replacing any existing elements.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poster_generator::{PosterGenerator, Element, TextElement, TextAlignType};
+    ///
+    /// let mut generator = PosterGenerator::new(800, 600, "#ffffff".to_string());
+    /// let elements = vec![
+    ///     Element::Text(TextElement {
+    ///         text: "Title".to_string(),
+    ///         x: 400.0,
+    ///         y: 100.0,
+    ///         font_size: 64.0,
+    ///         color: "#000000".to_string(),
+    ///         align: TextAlignType::Center,
+    ///         ..Default::default()
+    ///     }),
+    /// ];
+    /// generator.set_elements(elements);
+    /// ```
     pub fn set_elements(&mut self, elements: Vec<Element>) -> &mut Self {
         self.clear();
         
@@ -537,7 +816,24 @@ impl PosterGenerator {
         
         self
     }
-    
+
+    /// Generates the poster as PNG image data.
+    ///
+    /// Returns a vector of bytes containing the PNG image data.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if rendering fails or PNG encoding fails.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poster_generator::PosterGenerator;
+    ///
+    /// let generator = PosterGenerator::new(800, 600, "#ffffff".to_string());
+    /// let png_data = generator.generate().expect("Failed to generate");
+    /// std::fs::write("output.png", png_data).expect("Failed to write file");
+    /// ```
     pub fn generate(&self) -> Result<Vec<u8>> {
         // Create surface
         let mut surface = skia_safe::surfaces::raster_n32_premul((self.width as i32, self.height as i32)).ok_or_else(|| {
@@ -570,7 +866,25 @@ impl PosterGenerator {
         
         Ok(data.as_bytes().to_vec())
     }
-    
+
+    /// Generates the poster and saves it to a file.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Output file path
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if rendering fails or file writing fails.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poster_generator::PosterGenerator;
+    ///
+    /// let generator = PosterGenerator::new(800, 600, "#ffffff".to_string());
+    /// generator.generate_file("poster.png").expect("Failed to save");
+    /// ```
     pub fn generate_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let png_data = self.generate()?;
         
@@ -579,7 +893,24 @@ impl PosterGenerator {
         
         Ok(())
     }
-    
+
+    /// Generates the poster as a base64 encoded data URL.
+    ///
+    /// Returns a string in the format: `data:image/png;base64,<encoded_data>`
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if rendering or encoding fails.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use poster_generator::PosterGenerator;
+    ///
+    /// let generator = PosterGenerator::new(800, 600, "#ffffff".to_string());
+    /// let base64_url = generator.generate_base64().expect("Failed to encode");
+    /// println!("Data URL: {}", base64_url);
+    /// ```
     pub fn generate_base64(&self) -> Result<String> {
         let png_data = self.generate()?;
         
@@ -944,115 +1275,6 @@ fn draw_text_line_improved(
             };
             
             canvas.draw_text_blob(blob, Point::new(draw_x, y), paint);
-        }
-    }
-}
-
-// API server module
-pub mod server {
-    use super::*;
-    use axum::{
-        extract::Json,
-        routing::post,
-        http::StatusCode,
-        response::IntoResponse,
-        Router,
-    };
-    use serde::{Deserialize, Serialize};
-    use std::net::SocketAddr;
-    
-    #[derive(Debug, Serialize, Deserialize)]
-    pub struct PosterRequest {
-        pub config: PosterConfig,
-        pub format: OutputFormat,
-    }
-    
-    #[derive(Debug, Serialize, Deserialize)]
-    #[serde(rename_all = "lowercase")]
-    pub enum OutputFormat {
-        Base64,
-        File,
-    }
-    
-    #[derive(Debug, Serialize)]
-    pub struct PosterResponse {
-        pub success: bool,
-        pub data: Option<String>,
-        pub error: Option<String>,
-    }
-    
-    pub async fn run_server(port: u16) -> Result<()> {
-        let app = Router::new()
-            .route("/generate", post(generate_poster));
-            
-        let addr = SocketAddr::from(([0, 0, 0, 0], port));
-        println!("Listening on {}", addr);
-        
-        axum::Server::bind(&addr)
-            .serve(app.into_make_service())
-            .await?;
-            
-        Ok(())
-    }
-    
-    async fn generate_poster(Json(req): Json<PosterRequest>) -> impl IntoResponse {
-        let result = generate_poster_internal(req).await;
-        
-        match result {
-            Ok(response) => (StatusCode::OK, Json(response)),
-            Err(e) => {
-                let error_response = PosterResponse {
-                    success: false,
-                    data: None,
-                    error: Some(e.to_string()),
-                };
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
-            }
-        }
-    }
-    
-    async fn generate_poster_internal(req: PosterRequest) -> Result<PosterResponse> {
-        // Create poster generator
-        let mut generator = PosterGenerator::new(
-            req.config.width,
-            req.config.height,
-            req.config.background_color.clone(),
-        );
-        
-        // Add elements
-        for element in req.config.elements {
-            match element {
-                Element::Background(bg) => generator.add_background(bg),
-                Element::Image(img) => generator.add_image(img),
-                Element::Text(txt) => generator.add_text(txt),
-            };
-        }
-        
-        // Generate poster
-        match req.format {
-            OutputFormat::Base64 => {
-                let base64 = generator.generate_base64()?;
-                Ok(PosterResponse {
-                    success: true,
-                    data: Some(base64),
-                    error: None,
-                })
-            },
-            OutputFormat::File => {
-                // Generate a temporary file path
-                let temp_dir = std::env::temp_dir();
-                let filename = format!("poster_{}.png", chrono::Utc::now().timestamp());
-                let path = temp_dir.join(filename);
-                
-                // Generate poster file
-                generator.generate_file(&path)?;
-                
-                Ok(PosterResponse {
-                    success: true,
-                    data: Some(path.to_string_lossy().to_string()),
-                    error: None,
-                })
-            }
         }
     }
 } 

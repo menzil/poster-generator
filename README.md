@@ -1,308 +1,223 @@
 # Poster Generator
 
-一个基于 Rust 和 Skia Safe 的海报生成工具，可以创建包含文本和图像元素的海报图片。
+[![Crates.io](https://img.shields.io/crates/v/poster_generator.svg)](https://crates.io/crates/poster_generator)
+[![Documentation](https://docs.rs/poster_generator/badge.svg)](https://docs.rs/poster_generator)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-## 特性
+一个基于 Rust 和 Skia Safe 的海报生成库，支持 RTL (从右到左) 文本渲染，适用于阿拉伯语、希伯来语、波斯语和维吾尔语等语言。
 
-- 创建可配置宽高的海报
-- 添加背景元素（颜色或图片），支持圆角
-- 添加图片元素，支持：
-  - 位置设置（x, y 坐标）
-  - 尺寸设置（宽度，高度）
-  - 圆角
-  - 图片适应模式（cover, contain, stretch）
-  - z-index 层级
-- 添加文本元素，支持：
-  - 位置和尺寸设置
-  - 字体样式（大小，颜色，加粗）
-  - 文本对齐方式（左对齐，居中，右对齐）
-  - 多行文本自动换行和行高控制
-  - 最大行数限制，超出自动添加省略号
-  - 文本背景色，内边距和圆角
-  - z-index 层级
-  - 支持从右往左(RTL)的文本渲染，适用于阿拉伯语、希伯来语等
-- 输出为 PNG 文件或 base64 编码字符串
-- 命令行界面和 HTTP API
+A poster generation library based on Skia Safe with RTL (Right-to-Left) text support for Arabic, Hebrew, Persian, and Uyghur languages.
 
-## 安装
+## 特性 Features
 
-```bash
-# 克隆仓库
-git clone https://github.com/yourusername/poster_generator.git
-cd poster_generator
+- ✅ 创建可配置宽高的海报 / Customizable canvas size
+- ✅ 背景元素（颜色或图片），支持圆角 / Background with colors, images, and rounded corners
+- ✅ 图片元素：
+  - 位置设置（x, y 坐标）/ Positioning (x, y coordinates)
+  - 尺寸设置（宽度，高度）/ Sizing (width, height)
+  - 圆角 / Rounded corners
+  - 图片适应模式（cover, contain, stretch）/ Object fit modes
+  - z-index 层级 / Z-index layering
+- ✅ 文本元素：
+  - 位置和尺寸设置 / Positioning and sizing
+  - 字体样式（大小，颜色，加粗）/ Font styling (size, color, bold)
+  - 文本对齐方式（左对齐，居中，右对齐）/ Text alignment (left, center, right)
+  - 多行文本自动换行和行高控制 / Multi-line text with automatic wrapping
+  - 最大行数限制，超出自动添加省略号 / Max lines with ellipsis
+  - 文本背景色，内边距和圆角 / Text background with padding and border radius
+  - z-index 层级 / Z-index layering
+  - **支持从右往左(RTL)的文本渲染** / **RTL text rendering support**
+- ✅ 输出为 PNG 文件或 base64 编码字符串 / Export as PNG file or base64 string
 
-# 构建项目
-cargo build --release
+## 安装 Installation
+
+### 作为库使用 As a Library
+
+将以下内容添加到你的 `Cargo.toml`:
+
+```toml
+[dependencies]
+poster_generator = "0.1"
 ```
 
-## 使用方法
+或使用 cargo add:
 
-### 命令行
+```bash
+cargo add poster_generator
+```
+
+### 命令行工具 CLI Tool
+
+```bash
+cargo install poster_generator
+```
+
+## 使用方法 Usage
+
+### 作为库 As a Library
+
+```rust
+use poster_generator::{PosterGenerator, TextElement, TextAlignType, TextDirectionType};
+
+fn main() -> anyhow::Result<()> {
+    // 创建生成器
+    let mut generator = PosterGenerator::new(800, 600, "#ffffff".to_string());
+
+    // 添加文本元素
+    let text = TextElement {
+        text: "Hello, World!".to_string(),
+        x: 400.0,
+        y: 300.0,
+        font_size: 48.0,
+        color: "#333333".to_string(),
+        align: TextAlignType::Center,
+        ..Default::default()
+    };
+
+    generator.add_text(text);
+
+    // 生成并保存
+    generator.generate_file("output.png")?;
+
+    Ok(())
+}
+```
+
+### RTL 文本示例 RTL Text Example
+
+```rust
+use poster_generator::{PosterGenerator, TextElement, TextAlignType, TextDirectionType};
+
+fn main() -> anyhow::Result<()> {
+    let mut generator = PosterGenerator::new(800, 600, "#f8f9fa".to_string());
+
+    // 维吾尔语文本
+    let uyghur_text = TextElement {
+        text: "ئۇيغۇر تىلى".to_string(),
+        x: 400.0,
+        y: 200.0,
+        font_size: 48.0,
+        color: "#2c3e50".to_string(),
+        align: TextAlignType::Center,
+        direction: TextDirectionType::Rtl,
+        font_family: Some("ALKATIP Basma Tom".to_string()),
+        ..Default::default()
+    };
+
+    // 阿拉伯语文本
+    let arabic_text = TextElement {
+        text: "مرحبا بالعالم".to_string(),
+        x: 400.0,
+        y: 300.0,
+        font_size: 36.0,
+        color: "#0066cc".to_string(),
+        align: TextAlignType::Center,
+        direction: TextDirectionType::Rtl,
+        background_color: Some("#e6f7ff".to_string()),
+        padding: 10.0,
+        ..Default::default()
+    };
+
+    generator.add_text(uyghur_text);
+    generator.add_text(arabic_text);
+
+    generator.generate_file("rtl_poster.png")?;
+
+    Ok(())
+}
+```
+
+### 命令行使用 CLI Usage
 
 ```bash
 # 从 JSON 配置文件生成海报
-cargo run --release --bin poster_generator -- -c example_config.json -o output_poster.png
+poster_generator -c config.json -o output.png
 
-# 生成海报并输出为 base64
-cargo run --release --bin poster_generator -- -c example_config.json --base64
+# 生成 base64 输出
+poster_generator -c config.json -o output.png --base64
 
 # 运行示例
-cargo run --release --bin example
+poster_generator_example
 ```
 
-### API 服务器
-
-```bash
-# 启动 API 服务器
-cargo run --release --bin server -- -p 3000
-```
-
-然后可以向 `http://localhost:3000/generate` 发送 POST 请求，请求体如下：
-
-```json
-{
-  "config": {
-    "width": 750,
-    "height": 600,
-    "background_color": "#ffffff",
-    "elements": [
-      {
-        "type": "background",
-        "color": "#f5f5f5",
-        "radius": 20
-      },
-      {
-        "type": "image",
-        "src": "https://example.com/image.jpg",
-        "x": 50,
-        "y": 50,
-        "width": 650,
-        "height": 300,
-        "radius": 10,
-        "object_fit": "cover",
-        "z_index": 1
-      },
-      {
-        "type": "text",
-        "text": "海报标题示例",
-        "x": 375,
-        "y": 400,
-        "font_size": 40,
-        "color": "#333333",
-        "align": "center",
-        "bold": true,
-        "z_index": 2,
-        "direction": "ltr"
-      },
-      {
-        "type": "text",
-        "text": "مرحبا بالعالم",
-        "x": 375,
-        "y": 500,
-        "font_size": 30,
-        "color": "#0066cc",
-        "align": "right",
-        "bold": false,
-        "background_color": "#e6f7ff", 
-        "padding": 8,
-        "z_index": 2,
-        "direction": "rtl"
-      }
-    ]
-  },
-  "format": "base64"
-}
-```
-
-API 将返回：
-
-```json
-{
-  "success": true,
-  "data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEU...",
-  "error": null
-}
-```
-
-## 配置
-
-海报生成器使用 JSON 配置格式：
-
-```json
-{
-  "width": 750,
-  "height": 600,
-  "background_color": "#ffffff",
-  "elements": [
-    // 元素数组（背景、图片、文本）
-  ]
-}
-```
-
-### 元素类型
-
-#### 背景
-
-```json
-{
-  "type": "background",
-  "color": "#f5f5f5",
-  "image": "可选图片路径.jpg",
-  "radius": 20
-}
-```
-
-#### 图片
-
-```json
-{
-  "type": "image",
-  "src": "图片路径.jpg",
-  "x": 50,
-  "y": 50,
-  "width": 300,
-  "height": 200,
-  "radius": 10,
-  "object_fit": "cover",
-  "z_index": 1
-}
-```
-
-#### 文本
-
-```json
-{
-  "type": "text",
-  "text": "你好，世界！",
-  "x": 100,
-  "y": 100,
-  "font_size": 24,
-  "color": "#333333",
-  "align": "left",
-  "font_family": "Arial",  // 可选：指定字体族，如"ALKATIP Basma Tom"用于维吾尔语
-  "max_width": 400,
-  "line_height": 1.5,
-  "max_lines": 2,
-  "bold": false,
-  "prefix": "¥",
-  "background_color": "#f0f0f0",
-  "padding": 10,
-  "border_radius": 5,
-  "z_index": 1,
-  "direction": "ltr"  // 可选值: "ltr"(从左到右) 或 "rtl"(从右到左)
-}
-```
-
-## RTL 文本与多语言支持
-
-本工具支持从右到左(RTL)的文本方向，适用于阿拉伯语、希伯来语、波斯语、维吾尔语等语言。系统会自动检测RTL文字并选择合适的字体。
-
-### 支持的语言
-- **阿拉伯语**：مرحبا بالعالم
-- **波斯语**：سلام دنیا
-- **维吾尔语**：ئۇيغۇر تىلى، سالام دۇنيا
-- **希伯来语**：שלום עולם
-- **中文**：你好，世界
-- **英语**：Hello, World
-- **其他拉丁字母语言**
-
-### RTL文本配置
-
-RTL文本的渲染需要以下设置：
-
-1. **自动检测**：系统会自动检测文本中的RTL字符，无需手动设置
-2. **手动指定**：也可以通过 `direction: "rtl"` 手动指定文本方向
-3. **字体选择**：系统会自动为RTL文本选择支持该语言的字体，也可通过 `font_family` 指定专用字体
-4. **对齐方式**：通常RTL文本使用 `align: "right"` 或 `align: "center"`
-5. **连字支持**：保持原始文本顺序以支持正确的阿拉伯文字连字渲染
-
-### 维吾尔语示例
-
-```json
-{
-  "type": "text",
-  "text": "ئۇيغۇر تىلى",
-  "x": 400,
-  "y": 150,
-  "font_size": 48,
-  "color": "#2c3e50",
-  "align": "center",
-  "direction": "rtl",
-  "font_family": "ALKATIP Basma Tom",
-  "bold": true
-}
-```
-
-### 阿拉伯语示例
-
-```json
-{
-  "type": "text",
-  "text": "مرحبا بالعالم",
-  "x": 375,
-  "y": 500,
-  "font_size": 30,
-  "color": "#0066cc",
-  "align": "right",
-  "direction": "rtl",
-  "background_color": "#e6f7ff",
-  "padding": 8
-}
-```
-
-### 混合语言文档
+## JSON 配置格式 JSON Configuration
 
 ```json
 {
   "width": 800,
   "height": 600,
-  "background_color": "#f8f9fa",
+  "background_color": "#ffffff",
   "elements": [
     {
-      "type": "text",
-      "text": "ئۇيغۇر تىلى",
-      "x": 400,
-      "y": 150,
-      "font_size": 36,
-      "color": "#e74c3c",
-      "align": "center",
-      "direction": "rtl"
+      "type": "background",
+      "color": "#f5f5f5",
+      "radius": 20
+    },
+    {
+      "type": "image",
+      "src": "photo.jpg",
+      "x": 50,
+      "y": 50,
+      "width": 700,
+      "height": 400,
+      "radius": 10,
+      "object_fit": "cover",
+      "z_index": 1
     },
     {
       "type": "text",
-      "text": "Uyghur Language / 维吾尔语",
+      "text": "Hello, World!",
       "x": 400,
-      "y": 200,
-      "font_size": 24,
-      "color": "#3498db",
+      "y": 500,
+      "font_size": 48,
+      "color": "#333333",
       "align": "center",
-      "direction": "ltr"
+      "bold": true,
+      "z_index": 2
     }
   ]
 }
 ```
 
-## 特点
+## RTL 文本支持 RTL Text Support
 
-本项目使用 Skia Safe（Skia 图形库的 Rust 绑定）进行渲染，相比原先的 tiny-skia 库提供了以下优势：
+本库自动检测并支持以下语言的 RTL 文本渲染：
 
-1. 真实的文本渲染支持，而不是简单的占位符
-2. 对RTL文本的原生支持
-3. 更好的图像处理能力
-4. 丰富的图形绘制功能
-5. 与 Chrome、Android 等主流平台使用相同的渲染引擎
+This library automatically detects and supports RTL text rendering for:
 
-## 依赖
+- **阿拉伯语 Arabic**: مرحبا بالعالم
+- **波斯语 Persian**: سلام دنیا
+- **维吾尔语 Uyghur**: ئۇيغۇر تىلى، سالام دۇنيا
+- **希伯来语 Hebrew**: שלום עולם
 
-- skia-safe：Skia 图形库的 Rust 安全绑定
-- base64：处理 base64 编码和解码
-- image：图像处理
-- serde/serde_json：序列化和反序列化 JSON
-- axum：Web API 框架
-- clap：命令行参数解析
-- tokio：异步运行时
-- anyhow/thiserror：错误处理
+### RTL 配置要点 RTL Configuration Tips
 
-## 许可证
+1. **自动检测 Auto-detection**: 系统会自动检测文本中的 RTL 字符 / System automatically detects RTL characters
+2. **手动指定 Manual specification**: 可通过 `direction: "rtl"` 手动指定 / Use `direction: "rtl"` to manually specify
+3. **字体选择 Font selection**: 系统自动选择支持的字体，也可通过 `font_family` 指定 / System auto-selects fonts, or specify via `font_family`
+4. **对齐方式 Alignment**: RTL 文本通常使用 `align: "right"` 或 `align: "center"` / RTL text usually uses right or center alignment
 
-MIT 
+## 依赖 Dependencies
+
+- **skia-safe**: Skia 图形库的 Rust 绑定 / Rust bindings for Skia graphics library
+- **serde/serde_json**: JSON 序列化支持 / JSON serialization
+- **base64**: Base64 编码支持 / Base64 encoding
+- **anyhow/thiserror**: 错误处理 / Error handling
+
+## 文档 Documentation
+
+完整 API 文档请访问 [docs.rs](https://docs.rs/poster_generator)
+
+For complete API documentation, visit [docs.rs](https://docs.rs/poster_generator)
+
+## 许可证 License
+
+MIT License - 详见 [LICENSE](LICENSE) 文件
+
+MIT License - See [LICENSE](LICENSE) file for details
+
+## 贡献 Contributing
+
+欢迎贡献！请随时提交 Pull Request。
+
+Contributions are welcome! Feel free to submit a Pull Request.
