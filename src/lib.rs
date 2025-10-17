@@ -3,9 +3,9 @@ use base64::{engine::general_purpose, Engine};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use skia_safe::{
-    Canvas, Color, Data, EncodedImageFormat, Font, 
-    FontMgr, FontStyle, Image, Paint, Path as SkPath, Point, Rect, 
-    Surface, TextBlob, Typeface,
+    Canvas, Color, Data, EncodedImageFormat, Font,
+    FontMgr, FontStyle, Image, Paint, Path as SkPath, Point, Rect,
+    TextBlob,
     textlayout::{FontCollection, ParagraphBuilder, ParagraphStyle, TextAlign, TextDirection, TextStyle, TypefaceFontProvider}
 };
 use thiserror::Error;
@@ -238,11 +238,6 @@ fn get_font_for_text_with_family(text: &str, font_size: f32, bold: bool, font_fa
     }
 }
 
-// Function to get appropriate font for text (backward compatibility)
-fn get_font_for_text(text: &str, font_size: f32, bold: bool) -> Font {
-    get_font_for_text_with_family(text, font_size, bold, None)
-}
-
 // Default values
 fn default_object_fit() -> ObjectFit {
     ObjectFit::Cover
@@ -303,7 +298,6 @@ impl PosterElement for BackgroundElement {
         
         if let Some(radius) = &self.radius {
             // Draw with rounded corners
-            let _rect = Rect::new(0.0, 0.0, width as f32, height as f32);
             let path = create_rounded_rect_path(0.0, 0.0, width as f32, height as f32, radius);
             canvas.draw_path(&path, &paint);
         } else {
@@ -319,9 +313,8 @@ impl PosterElement for BackgroundElement {
                 
                 // Create a mask if radius is specified
                 if let Some(radius) = &self.radius {
-                    let _rect = Rect::new(0.0, 0.0, width as f32, height as f32);
                     canvas.save();
-                    
+
                     // Create clip path
                     let path = create_rounded_rect_path(0.0, 0.0, width as f32, height as f32, radius);
                     canvas.clip_path(&path, None, Some(true));
@@ -493,16 +486,10 @@ impl TextElement {
     // Process RTL text for better display
     fn process_rtl_text(&self, text: &str) -> String {
         // For Arabic script text (including Uyghur), we should NOT reverse the text
-        // because Skia Safe should handle the correct display direction
-        // Reversing would break ligatures and proper text shaping
-        
-        // Instead, we preserve the original text and let Skia handle the RTL rendering
-        if is_rtl_text(text) {
-            // Keep original order for proper ligature rendering
-            text.to_string()
-        } else {
-            text.to_string()
-        }
+        // because Skia Safe handles the correct display direction automatically.
+        // Reversing would break ligatures and proper text shaping.
+        // We preserve the original text and let Skia handle the RTL rendering.
+        text.to_string()
     }
 }
 
@@ -553,7 +540,7 @@ impl PosterGenerator {
     
     pub fn generate(&self) -> Result<Vec<u8>> {
         // Create surface
-        let mut surface = Surface::new_raster_n32_premul((self.width as i32, self.height as i32)).ok_or_else(|| {
+        let mut surface = skia_safe::surfaces::raster_n32_premul((self.width as i32, self.height as i32)).ok_or_else(|| {
             PosterError::RenderError("Failed to create surface".to_string())
         })?;
         
@@ -675,7 +662,7 @@ fn scale_image(img: Image, width: f32, height: f32, object_fit: &ObjectFit) -> R
             let scaled_height = (src_height * scale).ceil() as i32;
             
             // Create a surface for the scaled image
-            let mut surface = Surface::new_raster_n32_premul((width as i32, height as i32)).ok_or_else(|| {
+            let mut surface = skia_safe::surfaces::raster_n32_premul((width as i32, height as i32)).ok_or_else(|| {
                 PosterError::RenderError("Failed to create surface for scaled image".to_string())
             })?;
             
@@ -703,7 +690,7 @@ fn scale_image(img: Image, width: f32, height: f32, object_fit: &ObjectFit) -> R
             let scaled_height = (src_height * scale) as i32;
             
             // Create a surface for the scaled image
-            let mut surface = Surface::new_raster_n32_premul((width as i32, height as i32)).ok_or_else(|| {
+            let mut surface = skia_safe::surfaces::raster_n32_premul((width as i32, height as i32)).ok_or_else(|| {
                 PosterError::RenderError("Failed to create surface for scaled image".to_string())
             })?;
             
@@ -724,7 +711,7 @@ fn scale_image(img: Image, width: f32, height: f32, object_fit: &ObjectFit) -> R
         },
         ObjectFit::Stretch => {
             // Create a surface for the stretched image
-            let mut surface = Surface::new_raster_n32_premul((width as i32, height as i32)).ok_or_else(|| {
+            let mut surface = skia_safe::surfaces::raster_n32_premul((width as i32, height as i32)).ok_or_else(|| {
                 PosterError::RenderError("Failed to create surface for stretched image".to_string())
             })?;
             
@@ -799,99 +786,13 @@ fn measure_text_with_font(text: &str, font: &Font) -> (f32, f32) {
     (bounds.width(), bounds.height())
 }
 
-fn measure_text(text: &str, font: &Font) -> (f32, f32) {
-    // Use Skia's text measurement
-    let blob = TextBlob::new(text, font).unwrap_or_else(|| {
-        TextBlob::new(" ", font).unwrap() // Fallback to a space if there's an issue
-    });
-    
-    let bounds = blob.bounds();
-    (bounds.width(), bounds.height())
-}
-
-fn break_text(text: &str, max_width: f32, font: &Font, max_lines: Option<u32>) -> Vec<String> {
-    let mut lines = Vec::new();
-    let mut current_line = String::new();
-    let words: Vec<&str> = text.split_whitespace().collect();
-    
-    for word in words {
-        let test_line = if current_line.is_empty() {
-            word.to_string()
-        } else {
-            format!("{} {}", current_line, word)
-        };
-        
-        let (test_width, _) = measure_text(&test_line, font);
-        
-        if test_width <= max_width || current_line.is_empty() {
-            current_line = test_line;
-        } else {
-            lines.push(current_line);
-            current_line = word.to_string();
-            
-            if let Some(max) = max_lines {
-                if lines.len() >= max as usize - 1 {
-                    break;
-                }
-            }
-        }
-    }
-    
-    if !current_line.is_empty() {
-        if let Some(max) = max_lines {
-            if lines.len() >= max as usize {
-                // Truncate last line with ellipsis
-                let last_line = lines.last_mut().unwrap();
-                *last_line = truncate_with_ellipsis(last_line, max_width, font);
-            } else {
-                lines.push(current_line);
-            }
-        } else {
-            lines.push(current_line);
-        }
-    }
-    
-    lines
-}
-
-fn truncate_with_ellipsis(text: &str, max_width: f32, font: &Font) -> String {
-    let ellipsis = "...";
-    let (ellipsis_width, _) = measure_text(ellipsis, font);
-    
-    let (text_width, _) = measure_text(text, font);
-    if text_width <= max_width {
-        return text.to_string();
-    }
-    
-    let available_width = max_width - ellipsis_width;
-    let mut result = String::new();
-    
-    for ch in text.chars() {
-        let test_text = format!("{}{}", result, ch);
-        let (test_width, _) = measure_text(&test_text, font);
-        
-        if test_width <= available_width {
-            result.push(ch);
-        } else {
-            break;
-        }
-    }
-    
-    format!("{}{}", result, ellipsis)
-}
-
 // RTL-aware text breaking
 fn break_text_rtl(text: &str, max_width: f32, font: &Font, max_lines: Option<u32>) -> Vec<String> {
     let mut lines = Vec::new();
     let mut current_line = String::new();
     
-    // For RTL text, we need to be careful about word boundaries
-    let words: Vec<&str> = if is_rtl_text(text) {
-        // For RTL languages, split by spaces but preserve character order
-        text.split_whitespace().collect()
-    } else {
-        text.split_whitespace().collect()
-    };
+    // Split text by whitespace (same for both LTR and RTL - character order is preserved)
+    let words: Vec<&str> = text.split_whitespace().collect();
     
     for word in words {
         let test_line = if current_line.is_empty() {
@@ -1044,14 +945,6 @@ fn draw_text_line_improved(
             
             canvas.draw_text_blob(blob, Point::new(draw_x, y), paint);
         }
-    }
-}
-
-fn draw_text_line(canvas: &Canvas, text: &str, x: f32, y: f32, font: &Font, paint: &Paint, _direction: &TextDirectionType) {
-    // Create a text blob (direction handling simplified)
-    if let Some(blob) = TextBlob::new(text, font) {
-        // Draw text
-        canvas.draw_text_blob(blob, Point::new(x, y), paint);
     }
 }
 

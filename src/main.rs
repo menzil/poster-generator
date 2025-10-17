@@ -15,8 +15,7 @@ struct Cli {
     base64: bool,
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     
     // Read config file
