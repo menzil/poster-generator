@@ -620,18 +620,65 @@ impl TextElement {
             full_text.to_string()
         };
         
+        // Determine if we have multi-line text
+        let has_manual_newlines = processed_text.contains('\n');
+        let lines: Vec<String> = if has_manual_newlines && self.max_width.is_some() {
+            // Both manual newlines and max_width: split by \n first, then wrap each line
+            let max_width = self.max_width.unwrap();
+            let mut all_lines = Vec::new();
+            for manual_line in processed_text.split('\n') {
+                let wrapped_lines = break_text_rtl(manual_line, max_width, font, None);
+                all_lines.extend(wrapped_lines);
+            }
+            // Apply max_lines limit if specified
+            if let Some(max) = self.max_lines {
+                all_lines.truncate(max as usize);
+            }
+            all_lines
+        } else if has_manual_newlines {
+            // Only manual newlines: split by \n
+            let mut lines: Vec<String> = processed_text.split('\n').map(|s| s.to_string()).collect();
+            // Apply max_lines limit if specified
+            if let Some(max) = self.max_lines {
+                lines.truncate(max as usize);
+            }
+            lines
+        } else if let Some(max_width) = self.max_width {
+            // Only auto word wrap based on max_width
+            break_text_rtl(&processed_text, max_width, font, self.max_lines)
+        } else {
+            // Single line
+            vec![processed_text.clone()]
+        };
+
         // Draw background if specified
         if let Some(bg_color_str) = &self.background_color {
             let bg_color = parse_color(bg_color_str);
             let mut bg_paint = Paint::default();
             bg_paint.set_color(bg_color);
-            
-            // Measure text to determine background size
-            let (text_width, text_height) = measure_text_with_font(&processed_text, font);
-            
-            let bg_width = self.width.unwrap_or_else(|| text_width + self.padding * 2.0);
-            let bg_height = self.height.unwrap_or_else(|| text_height + self.padding * 2.0);
-            
+
+            // Get font metrics for accurate vertical positioning
+            let (_line_spacing, metrics) = font.metrics();
+            let ascent = -metrics.ascent; // ascent is negative in Skia
+            let descent = metrics.descent; // descent is positive
+            let single_line_height = ascent + descent;
+
+            // Calculate total text dimensions for multi-line text
+            let max_line_width = lines.iter()
+                .map(|line| measure_text_with_font(line, font).0)
+                .max_by(|a, b| a.partial_cmp(b).unwrap())
+                .unwrap_or(0.0);
+
+            let total_text_height = if lines.len() > 1 {
+                // First line uses single_line_height, subsequent lines use line_height spacing
+                single_line_height + (lines.len() - 1) as f32 * self.font_size * self.line_height
+            } else {
+                single_line_height
+            };
+
+            let bg_width = self.width.unwrap_or_else(|| max_line_width + self.padding * 2.0);
+            let bg_height = self.height.unwrap_or_else(|| total_text_height + self.padding * 2.0);
+
             // Adjust x position based on text alignment
             let bg_x = match (self.align, text_direction) {
                 (TextAlignType::Left, TextDirectionType::Ltr) => self.x - self.padding,
@@ -641,9 +688,11 @@ impl TextElement {
                 (TextAlignType::Left, TextDirectionType::Rtl) => self.x - bg_width + self.padding,
                 (TextAlignType::Right, TextDirectionType::Rtl) => self.x - self.padding,
             };
-            
-            let bg_y = self.y - text_height - self.padding;
-            
+
+            // Position background box so text baseline is vertically centered
+            // self.y is the text baseline, ascent goes up, descent goes down
+            let bg_y = self.y - ascent - self.padding;
+
             // Draw background with optional radius
             if let Some(radius) = &self.border_radius {
                 let path = create_rounded_rect_path(bg_x, bg_y, bg_width, bg_height, radius);
@@ -653,18 +702,11 @@ impl TextElement {
                 canvas.draw_rect(rect, &bg_paint);
             }
         }
-        
-        // Handle multi-line text if max_width is specified
-        if let Some(max_width) = self.max_width {
-            let lines = break_text_rtl(&processed_text, max_width, font, self.max_lines);
-            
-            for (i, line) in lines.iter().enumerate() {
-                let y_pos = self.y + (i as f32 * self.font_size * self.line_height);
-                draw_text_line_improved(canvas, line, self.x, y_pos, font, &paint, text_direction, &self.align);
-            }
-        } else {
-            // Single line text
-            draw_text_line_improved(canvas, &processed_text, self.x, self.y, font, &paint, text_direction, &self.align);
+
+        // Render all lines
+        for (i, line) in lines.iter().enumerate() {
+            let y_pos = self.y + (i as f32 * self.font_size * self.line_height);
+            draw_text_line_improved(canvas, line, self.x, y_pos, font, &paint, text_direction, &self.align);
         }
         
         Ok(())

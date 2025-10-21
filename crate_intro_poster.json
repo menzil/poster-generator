@@ -1,0 +1,128 @@
+{
+  "width": 800,
+  "height": 1200,
+  "background_color": "#3a3a3a",
+  "elements": [
+    {
+      "type": "image",
+      "src": "bg.jpg",
+      "x": 0,
+      "y": 0,
+      "width": 800,
+      "height": 1200,
+      "object_fit": "cover",
+      "z_index": 0
+    },
+    {
+      "type": "image",
+      "src": "logo.png",
+      "x": 20,
+      "y": 120,
+      "width": 200,
+      "height": 200,
+      "object_fit": "contain",
+      "z_index": 2
+    },
+    {
+      "type": "text",
+      "text": "Poster Generator",
+      "x": 240,
+      "y": 250,
+      "font_size": 60,
+      "color": "#000000",
+      "align": "left",
+      "bold": true,
+      "line_height": 1,
+      "background_color": "#f5f5f5",
+      "padding": 40,
+      "border_radius": 16,
+      "z_index": 2
+    },
+    {
+      "type": "text",
+      "text": "一个基于 Rust 和 Skia Safe\n的海报生成库，支持 RTL（从右到左）\n文本渲染，适用于阿拉伯语、希伯来语等",
+      "x": 400,
+      "y": 440,
+      "font_size": 28,
+      "color": "#222222",
+      "align": "center",
+      "line_height": 1.6,
+      "max_width": 700,
+      "z_index": 4
+    },
+    {
+      "type": "text",
+      "text": "✓ 多语言支持 (中文/阿拉伯语/英语等)",
+      "x": 100,
+      "y": 620,
+      "font_size": 22,
+      "color": "#222222",
+      "align": "left",
+      "z_index": 5
+    },
+    {
+      "type": "text",
+      "text": "✓ 图片处理 (Cover/Contain/Stretch)",
+      "x": 100,
+      "y": 670,
+      "font_size": 22,
+      "color": "#222222",
+      "align": "left",
+      "z_index": 5
+    },
+    {
+      "type": "text",
+      "text": "✓ 圆角与裁剪支持",
+      "x": 100,
+      "y": 720,
+      "font_size": 22,
+      "color": "#222222",
+      "align": "left",
+      "z_index": 5
+    },
+    {
+      "type": "text",
+      "text": "✓ CLI / HTTP API / 程序调用",
+      "x": 100,
+      "y": 770,
+      "font_size": 22,
+      "color": "#222222",
+      "align": "left",
+      "z_index": 5
+    },
+    {
+      "type": "text",
+      "text": "✓ Base64 编码输出",
+      "x": 100,
+      "y": 820,
+      "font_size": 22,
+      "color": "#222222",
+      "align": "left",
+      "z_index": 5
+    },
+    {
+      "type": "text",
+      "text": "cargo install poster_generator",
+      "x": 400,
+      "y": 900,
+      "font_size": 20,
+      "line_height":2,
+      "color": "#000000",
+      "align": "center",
+      "background_color": "#e0e0e0",
+      "padding": 15,
+      "border_radius": 8,
+      "z_index": 6
+    },
+    {
+      "type": "text",
+      "text": "github.com/menzil/poster-generator",
+      "x": 700,
+      "y": 970,
+      "font_size": 16,
+      "color": "#cccccc",
+      "align": "right",
+      "z_index": 7
+    }
+  ]
+}
