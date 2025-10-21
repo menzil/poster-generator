@@ -1,6 +1,6 @@
 [package]
 name = "poster_generator"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 default-run = "poster_generator"
 authors = ["Ruzaji Yasin <menzil@live.cn>"]
